@@ -1,1 +1,409 @@
 
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#162f36">
+<meta name="description" content="半蔵門駅周辺のランチを探して、迷ったら抽選。">
+<title>半蔵門ランチナビ Ver.5</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;color:#19343b;background:#f3f7f5}
+*{box-sizing:border-box}
+body{margin:0}
+button,input,select{font:inherit}
+button{cursor:pointer}
+header{background:linear-gradient(125deg,#173940,#27685b);color:white;padding:28px 18px 30px}
+header .wrap{max-width:760px;margin:auto}
+header h1{margin:6px 0;font-size:28px}
+header p{margin:4px 0 0;opacity:.9;font-size:14px}
+.eyebrow{font-size:12px;letter-spacing:.16em;opacity:.75}
+main{max-width:760px;margin:-14px auto 0;padding:0 14px 60px}
+.panel{background:white;border-radius:18px;box-shadow:0 6px 24px #17394010;padding:16px;margin-bottom:15px}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.filters label{display:block;font-size:12px;font-weight:700;color:#536c70;margin-bottom:5px}
+.filters input,.filters select{width:100%;border:1px solid #d9e4e0;border-radius:10px;background:#fff;padding:11px;min-width:0}
+.wide{grid-column:1/-1}
+.actions{display:flex;gap:9px;margin-top:13px;flex-wrap:wrap}
+.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:700;background:#e9f2ef;color:#24564e}
+.btn.primary{background:#19775e;color:white}
+.btn:disabled{opacity:.45}
+.btn.small{font-size:13px;padding:8px 10px}
+.status{font-size:13px;color:#587075;line-height:1.6}
+.status.error{color:#a43d36}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:18px 4px 10px}
+.bar h2{font-size:18px;margin:0}
+.bar span{font-size:12px;color:#587075}
+.card{background:white;border:1px solid #e0ebe7;border-radius:16px;padding:15px;margin-bottom:11px}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.card h3{font-size:17px;margin:0 0 6px;line-height:1.4}
+.meta{font-size:12px;color:#5c7477}
+.tag{display:inline-block;background:#eaf4ef;color:#21644f;border-radius:999px;padding:4px 9px;font-size:12px;margin:8px 5px 0 0}
+.desc{font-size:13px;line-height:1.7;margin:10px 0;color:#39565b}
+.card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.heart{background:#fff3f2;color:#b64b55;border:0;border-radius:10px;padding:9px 12px;font-size:19px}
+.empty{text-align:center;color:#61777a;padding:28px 10px}
+.hint{font-size:11px;color:#7b8e90;line-height:1.6;margin:12px 4px}
+.overlay{position:fixed;inset:0;background:#10282bd9;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:20px;padding:22px;width:min(100%,420px);text-align:center;max-height:90vh;overflow:auto}
+.modal .emoji{font-size:42px}
+.modal h2{margin:8px 0;font-size:22px}
+.modal p{line-height:1.7;color:#4d666a}
+.modal .actions{justify-content:center}
+.maplink{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.footer{text-align:center;color:#8b9e9e;font-size:11px;padding:20px}
+a{color:#166d61}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #f7ba54;outline-offset:2px}
+@media(max-width:390px){header h1{font-size:24px}.btn{font-size:13px}}
+</style>
+</head>
+<body>
+<header>
+<div class="wrap">
+<div class="eyebrow">HANZOMON LUNCH NAVI</div>
+<h1>🍱 半蔵門ランチナビ</h1>
+<p>お昼の「どこ行こう？」を、ちょっと楽しく。</p>
+</div>
+</header>
+<main>
+<section class="panel" aria-label="検索条件">
+<div class="filters">
+<div class="wide">
+<label for="keyword">キーワード・店名</label>
+<input id="keyword" placeholder="例：カレー、そば、カフェ">
+</div>
+<div>
+<label for="genre">ジャンル</label>
+<select id="genre">
+<option value="all">すべて</option>
+<option value="japanese">和食・そば</option>
+<option value="chinese">中華</option>
+<option value="western">洋食・イタリアン</option>
+<option value="curry">カレー</option>
+<option value="cafe">カフェ・軽食</option>
+<option value="other">その他</option>
+</select>
+</div>
+<div>
+<label for="radius">駅からの直線距離</label>
+<select id="radius">
+<option value="300">300m</option>
+<option value="500" selected>500m</option>
+<option value="650">650m</option>
+<option value="800">800m</option>
+</select>
+</div>
+</div>
+<div class="actions">
+<button class="btn primary" id="refresh">🔄 店舗情報を取得</button>
+<button class="btn" id="random">🎲 今日のランチを決めて！</button>
+<button class="btn" id="favorites">♡ お気に入りだけ</button>
+</div>
+<p class="status" id="status" role="status" aria-live="polite">「店舗情報を取得」を押してスタート！</p>
+</section>
+<div class="bar">
+<h2 id="heading">お店を探す</h2>
+<span id="count"></span>
+</div>
+<section id="results" aria-live="polite">
+<div class="panel empty">半蔵門駅周辺のお店を探しましょう 🍽️</div>
+</section>
+<p class="hint">※ 距離は半蔵門駅付近からの直線距離で、実際の徒歩時間とは異なります。店舗情報はOpenStreetMapの登録内容を利用しています。営業時間・営業状況・メニュー・価格は来店前にご確認ください。店舗紹介は登録されたジャンルに基づく一般的な説明です。</p>
+<div class="footer">半蔵門ランチナビ Ver.5 · © OpenStreetMap contributors</div>
+</main>
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="winnerTitle">
+<div class="modal">
+<div class="emoji">🎉</div>
+<div class="meta">今日のランチ候補は…</div>
+<h2 id="winnerTitle"></h2>
+<div class="meta" id="winnerMeta"></div>
+<p id="winnerDesc"></p>
+<div class="actions">
+<a id="winnerMap" class="btn primary maplink" target="_blank" rel="noopener noreferrer">🗺️ 徒歩ルート</a>
+<button class="btn" id="copyMap">🔗 地図URLをコピー</button>
+<button class="btn" id="reroll">🎲 もう一度</button>
+<button class="btn" id="close">閉じる</button>
+</div>
+<p class="status" id="copyStatus"></p>
+</div>
+</div>
+<script>
+(()=>{
+'use strict';
+const CENTER={lat:35.6857,lon:139.7416};
+const CACHE_KEY='hanzomon_v5_places';
+const FAV_KEY='hanzomon_v5_favs';
+const $=id=>document.getElementById(id);
+let places=[],showFavorites=false,currentWinner=null,loading=false;
+
+const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({
+'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+
+const readJSON=(key,fallback)=>{
+try{return JSON.parse(localStorage.getItem(key))??fallback}
+catch{return fallback}
+};
+let favs=new Set(readJSON(FAV_KEY,[]));
+
+function saveFavs(){
+try{localStorage.setItem(FAV_KEY,JSON.stringify([...favs]))}
+catch{}
+}
+
+function distance(lat,lon){
+const r=Math.PI/180;
+const a=Math.sin((lat-CENTER.lat)*r/2)**2+
+Math.cos(CENTER.lat*r)*Math.cos(lat*r)*
+Math.sin((lon-CENTER.lon)*r/2)**2;
+return Math.round(6371000*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+
+function classify(p){
+const t=(p.cuisine+' '+p.name+' '+p.amenity).toLowerCase();
+if(/curry|カレー|インド|ネパール/.test(t))return 'curry';
+if(/japanese|soba|udon|sushi|ramen|tempura|donburi|和食|そば|うどん|寿司|ラーメン|定食|とんかつ|天ぷら/.test(t))return 'japanese';
+if(/chinese|中華|餃子|四川|台湾/.test(t))return 'chinese';
+if(/italian|pizza|pasta|french|burger|steak|洋食|イタリア|フレンチ|ハンバーグ|ピザ/.test(t))return 'western';
+if(/cafe|coffee|bakery|sandwich|カフェ|喫茶|パン|サンド/.test(t))return 'cafe';
+return 'other';
+}
+
+const labels={
+japanese:'和食・そば',
+chinese:'中華',
+western:'洋食・イタリアン',
+curry:'カレー',
+cafe:'カフェ・軽食',
+other:'その他'
+};
+
+const intros={
+japanese:'和食や麺類を中心に探している日に候補になるお店です。',
+chinese:'中華系のランチを食べたい日に候補になるお店です。',
+western:'洋食系のランチを楽しみたい日に候補になるお店です。',
+curry:'スパイスの効いた料理が気になる日に候補になるお店です。',
+cafe:'軽食やカフェで過ごしたい日に候補になるお店です。',
+other:'近隣の飲食店として登録されています。'
+};
+
+function intro(p){
+return p.description?
+p.description:
+intros[p.genre]+' ※ジャンルに基づく一般的な紹介です。';
+}
+
+function mapURL(p){
+return 'https://www.google.com/maps/dir/?api=1&origin='+
+CENTER.lat+'%2C'+CENTER.lon+
+'&destination='+encodeURIComponent(p.lat+','+p.lon)+
+'&travelmode=walking';
+}
+
+function setStatus(msg,error=false){
+$('status').textContent=msg;
+$('status').className='status'+(error?' error':'');
+}
+
+function normalize(e){
+const t=e.tags||{};
+const lat=e.lat??e.center?.lat;
+const lon=e.lon??e.center?.lon;
+if(!t.name||!Number.isFinite(lat)||!Number.isFinite(lon))return null;
+const p={
+id:e.type+'/'+e.id,
+name:t['name:ja']||t.name,
+lat,lon,
+amenity:t.amenity||'',
+cuisine:t.cuisine||'',
+description:t.description||'',
+hours:t.opening_hours||'',
+distance:distance(lat,lon)
+};
+p.genre=classify(p);
+return p;
+}
+
+function filtered(){
+const q=$('keyword').value.trim().toLocaleLowerCase();
+const g=$('genre').value;
+const r=Number($('radius').value);
+return places.filter(p=>
+p.distance<=r &&
+(g==='all'||p.genre===g) &&
+(!q||(p.name+' '+p.cuisine+' '+p.description+' '+labels[p.genre]).toLocaleLowerCase().includes(q)) &&
+(!showFavorites||favs.has(p.id))
+).sort((a,b)=>a.distance-b.distance);
+}
+
+function render(){
+const items=filtered();
+$('heading').textContent=showFavorites?'お気に入りのお店':'見つかったお店';
+$('count').textContent=items.length+'件';
+$('favorites').textContent=showFavorites?'♥ すべて表示':'♡ お気に入りだけ';
+const box=$('results');
+box.replaceChildren();
+if(!items.length){
+box.innerHTML='<div class="panel empty">条件に合うお店がありません。<br>距離やジャンルを変更してみてください。</div>';
+return;
+}
+for(const p of items){
+const card=document.createElement('article');
+card.className='card';
+const safeId=escapeHTML(p.id);
+card.innerHTML=
+'<div class="card-top"><div><h3>'+escapeHTML(p.name)+'</h3>'+
+'<div class="meta">📍 約'+p.distance+'m（直線） · '+escapeHTML(labels[p.genre])+'</div></div>'+
+'<button class="heart" aria-label="お気に入りを切り替える" data-fav="'+safeId+'">'+
+(favs.has(p.id)?'♥':'♡')+'</button></div>'+
+'<span class="tag">'+escapeHTML(labels[p.genre])+'</span>'+
+(p.hours?'<span class="tag">営業時間情報あり</span>':'')+
+'<p class="desc">'+escapeHTML(intro(p))+'</p>'+
+(p.hours?'<div class="meta">🕒 登録営業時間：'+escapeHTML(p.hours)+'</div>':'')+
+'<div class="card-actions"><a class="btn small maplink" href="'+escapeHTML(mapURL(p))+
+'" target="_blank" rel="noopener noreferrer">🗺️ 徒歩ルート</a>'+
+'<button class="btn small" data-pick="'+safeId+'">🎲 このお店を見る</button></div>';
+box.appendChild(card);
+}
+}
+
+function showWinner(p){
+currentWinner=p;
+$('winnerTitle').textContent=p.name;
+$('winnerMeta').textContent=labels[p.genre]+' · 約'+p.distance+'m（直線）';
+$('winnerDesc').textContent=intro(p);
+$('winnerMap').href=mapURL(p);
+$('copyStatus').textContent='';
+$('overlay').classList.add('open');
+}
+
+function pick(){
+const items=filtered();
+if(!items.length){
+setStatus('抽選できるお店がありません。検索条件を変更してください。',true);
+return;
+}
+showWinner(items[Math.floor(Math.random()*items.length)]);
+}
+
+async function copyURL(){
+if(!currentWinner)return;
+const url=mapURL(currentWinner);
+try{
+await navigator.clipboard.writeText(url);
+$('copyStatus').textContent='コピーしました。Safariのアドレス欄に貼り付けて開けます。';
+}catch{
+window.prompt('このURLをコピーしてください',url);
+}
+}
+
+async function fetchOne(endpoint,query){
+const ctl=new AbortController();
+const timer=setTimeout(()=>ctl.abort(),16000);
+try{
+const res=await fetch(endpoint,{
+method:'POST',
+body:new URLSearchParams({data:query}),
+signal:ctl.signal
+});
+if(!res.ok)throw Error('HTTP '+res.status);
+const json=await res.json();
+if(!Array.isArray(json.elements))throw Error('取得形式が不正です');
+return json.elements;
+}finally{
+clearTimeout(timer);
+}
+}
+
+async function load(){
+if(loading)return;
+loading=true;
+$('refresh').disabled=true;
+setStatus('店舗データを取得しています…');
+const q='[out:json][timeout:25];(nwr(around:850,'+
+CENTER.lat+','+CENTER.lon+
+')[amenity~"^(restaurant|cafe|fast_food)$"][name];);out center tags;';
+const servers=[
+'https://overpass.kumi.systems/api/interpreter',
+'https://overpass.nchc.org.tw/api/interpreter',
+'https://overpass-api.de/api/interpreter'
+];
+let lastError=null;
+for(const server of servers){
+try{
+const raw=await fetchOne(server,q);
+const unique=new Map();
+for(const e of raw){
+const p=normalize(e);
+if(p&&p.distance<=850)unique.set(p.id,p);
+}
+places=[...unique.values()];
+try{
+localStorage.setItem(CACHE_KEY,JSON.stringify({time:Date.now(),places}));
+}catch{}
+setStatus('更新しました：'+places.length+'件取得。※データにないお店は表示されません。');
+render();
+loading=false;
+$('refresh').disabled=false;
+return;
+}catch(err){
+lastError=err;
+}
+}
+loading=false;
+$('refresh').disabled=false;
+setStatus('取得できませんでした。通信状況を確認して再試行してください。'+
+(places.length?' 保存済みデータを表示しています。':''),true);
+render();
+console.warn(lastError);
+}
+
+$('results').addEventListener('click',e=>{
+const fav=e.target.closest('[data-fav]');
+const pickBtn=e.target.closest('[data-pick]');
+if(fav){
+const id=fav.dataset.fav;
+favs.has(id)?favs.delete(id):favs.add(id);
+saveFavs();
+render();
+}else if(pickBtn){
+const p=places.find(x=>x.id===pickBtn.dataset.pick);
+if(p)showWinner(p);
+}
+});
+
+for(const id of ['keyword','genre','radius']){
+$(id).addEventListener(id==='keyword'?'input':'change',render);
+}
+
+$('refresh').addEventListener('click',load);
+$('random').addEventListener('click',pick);
+$('favorites').addEventListener('click',()=>{
+showFavorites=!showFavorites;
+render();
+});
+$('reroll').addEventListener('click',pick);
+$('close').addEventListener('click',()=>{
+$('overlay').classList.remove('open');
+});
+$('copyMap').addEventListener('click',copyURL);
+$('overlay').addEventListener('click',e=>{
+if(e.target===$('overlay'))$('overlay').classList.remove('open');
+});
+document.addEventListener('keydown',e=>{
+if(e.key==='Escape')$('overlay').classList.remove('open');
+});
+
+const cache=readJSON(CACHE_KEY,null);
+if(cache&&Array.isArray(cache.places)){
+places=cache.places;
+setStatus('保存済みの店舗情報を表示しています。「店舗情報を取得」で更新できます。');
+render();
+}else{
+load();
+}
+})();
+</script>
+</body>
+</html>
